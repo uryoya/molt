@@ -7,3 +7,6 @@ __pycache__/
 .venv
 venv/
 ENV/
+
+# Molt Project Only
+tmp/
