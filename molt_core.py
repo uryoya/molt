@@ -4,8 +4,8 @@ import shlex
 
 def molt(rev, repo, user):
     """ gitリポジトリのクローンと、Dockerイメージの立ち上げ """
-    command = 'git clone --progress {} ./tmp'.format(   # コマンドの生成
-        git_ripository_url(repo, user))
+    command = 'git clone --progress {} ./tmp/{}'.format(   # コマンドの生成
+        git_ripository_url(repo, user), rev)
     args = shlex.split(command)     # コマンドをリストに分解
     popen = subprocess.Popen(args,
                              stdout=subprocess.PIPE,
