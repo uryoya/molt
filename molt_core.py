@@ -1,26 +1,42 @@
+import pathlib
 import subprocess
 import shlex
 
 
-def molt(rev, repo, user):
-    """ gitリポジトリのクローンと、Dockerイメージの立ち上げ """
-    command = 'git clone --progress {} ./tmp/{}'.format(   # コマンドの生成
-        git_ripository_url(repo, user), rev)
-    args = shlex.split(command)     # コマンドをリストに分解
-    popen = subprocess.Popen(args,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT)
-    return popen.stdout
+class Molt:
+    def __init__(self, rev, repo, user):
+        self.rev = rev
+        self.repo = repo
+        self.user = user
+        self.repo_url = 'https://github.com/{}/{}.git/'.format(user, repo)
+        self.repo_dir = str(pathlib.Path('./repos') / user / repo / rev)
 
+    def molt(self):
+        """ gitリポジトリのクローンと、Dockerイメージの立ち上げ """
+        for command in (self._git_clone, self._git_checkout):
+            for row in command().stdout:
+                yield row
 
-def git_ripository_url(repo, user):
-    return 'https://github.com/{}/{}.git'.format(user, repo)
+    def _git_clone(self):
+        command = 'git clone --progress {} {}'.format(
+            self.repo_url, self.repo_dir)
+        return subprocess.Popen(shlex.split(command),
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+
+    def _git_checkout(self):
+        command = 'git checkout {}'.format(self.rev)
+        return subprocess.Popen(shlex.split(command),
+                                cwd=self.repo_dir,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
 
 
 if __name__ == '__main__':
-    rev = '32b5b45cf39f2f49f340b664a85522059bc4fe0a'
+    rev = '32b5b45'
     repo = 'molt'
     user = 'swkoubou'
 
-    for line in molt(rev, repo, user):
+    m = Molt(rev, repo, user)
+    for line in m.molt():
         print(line.decode(), end='', flush=True)
