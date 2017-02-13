@@ -10,3 +10,5 @@ ENV/
 
 # Molt Project Only
 tmp/
+repos/*
+!repos/.gitkeep
