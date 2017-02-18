@@ -1,7 +1,7 @@
 import re
 
 from flask import Flask, Response
-from molt_core import molt
+from molt_core import Molt
 
 app = Flask(__name__)
 
@@ -9,11 +9,12 @@ app = Flask(__name__)
 @app.route('/<virtual_host>', methods=['POST'])
 def index(virtual_host):
     rev, repo, user = virtual_host_parse(virtual_host)
+    m = Molt(rev, repo, user)
 
-    def generate():     # For streaming
-        for row in molt(rev, repo, user):
+    def generate(m):     # For streaming
+        for row in m.molt():
             yield row
-    return Response(generate(), mimetype='text/text')
+    return Response(generate(m), mimetype='text/text')
 
 
 def virtual_host_parse(virtual_host):
