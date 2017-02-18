@@ -9,7 +9,7 @@ class Molt:
         self.repo = repo
         self.user = user
         self.repo_url = 'https://github.com/{}/{}.git/'.format(user, repo)
-        self.repo_dir = str(pathlib.Path('./repos') / user / repo / rev)
+        self.repo_dir = str(pathlib.Path('../repos') / user / repo / rev)
 
     def molt(self):
         """ gitリポジトリのクローンと、Dockerイメージの立ち上げ """
