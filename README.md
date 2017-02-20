@@ -1,12 +1,21 @@
 # Molt
 
 ## Molt開発について
+
 ### ソースコード (必須)
+
 - [EditorConfig](http://editorconfig.org/)
 - [Flake8](http://flake8.pycqa.org/en/latest/)
 - [YAPF](https://github.com/google/yapf)
 
+### task runner
+
+```shell
+$ make help
+```
+
 ### コミットメッセージ (任意)
+
 - :new: `:new:` 新規ファイルを追加
 - :art: `:art:` リファクタリング
 - :construction: `:construction:` 工事中

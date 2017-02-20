@@ -1,8 +1,7 @@
 FROM python:3.5
 
-COPY requirements.txt /
-RUN pip install -r requirements.txt
-WORKDIR /app
 COPY app /app
+WORKDIR /app
+RUN pip install -r requirements.txt
 
 CMD ["python", "molt.py"]
