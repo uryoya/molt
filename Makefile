@@ -11,3 +11,13 @@ build: ## dockerイメージのビルド
 .PHONY: run
 run: ## コンテナの起動
 	docker run -it --rm -p 80:5000 swkoubou/molt
+
+.PHONY: develop
+develop: ## venvを使ったローカルの開発環境構築
+	python3 -m venv venv
+	source venv/bin/activate
+	cd app
+	pip install -r requirements.txt
+	cd ..
+	pip install -r requirements.dev.txt
+	deactivate
