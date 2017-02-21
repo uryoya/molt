@@ -33,14 +33,14 @@ class Molt:
                                 stderr=subprocess.STDOUT)
 
     def _compose_build(self):
-        command = 'compose build --no-cache'
+        command = 'docker-compose build --no-cache'
         return subprocess.Popen(shlex.split(command),
                                 cwd=self.repo_dir,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
 
     def _compose_up(self):
-        command = 'compose up'
+        command = 'docker-compose up'
         return subprocess.Popen(shlex.split(command),
                                 cwd=self.repo_dir,
                                 stdout=subprocess.PIPE,
