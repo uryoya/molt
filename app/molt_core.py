@@ -55,14 +55,26 @@ class Molt:
                                 stderr=subprocess.STDOUT)
 
     def _compose_build(self):
-        command = 'docker-compose build --no-cache'
+        conf = self.get_molt_config()
+        if conf == []:
+            command = 'docker-compose build --no-cache'
+        else:
+            expand_conf = '-f {} '*len(conf)
+            expand_conf = expand_conf.format(*conf)
+            command = 'docker-compose ' + expand_conf + 'build --no-cache'
         return subprocess.Popen(shlex.split(command),
                                 cwd=self.repo_dir,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
 
     def _compose_up(self):
-        command = 'docker-compose up'
+        conf = self.get_molt_config()
+        if conf == []:
+            command = 'docker-compose up'
+        else:
+            expand_conf = '-f {} '*len(conf)
+            expand_conf = expand_conf.format(*conf)
+            command = 'docker-compose ' + expand_conf + 'up -d'
         return subprocess.Popen(shlex.split(command),
                                 cwd=self.repo_dir,
                                 stdout=subprocess.PIPE,
@@ -78,4 +90,3 @@ if __name__ == '__main__':
     for line in m.molt():
         print(line.decode(), end='', flush=True)
     print()
-    print(m.get_molt_config())
