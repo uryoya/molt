@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Molt | {{ vhost.repo }}</title>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>{{ vhost.repo }} molting now...</h1>
+    <table>
+        <tr><td>User</td><td id=user>{{ vhost.user }}</td></tr>
+        <tr><td>Repository</td><td id=repo>{{ vhost.repo }}</td></tr>
+        <tr><td>Revision</td><td id=rev>{{ vhost.rev }}</td></tr>
+    </table>
+    <p class=console></p>
+
+    <script src="{{ url_for('static', filename='molt.js') }}"></script>
+</body>
+</html>
