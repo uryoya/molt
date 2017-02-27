@@ -70,7 +70,7 @@ class Molt:
     def _compose_up(self):
         conf = self.get_molt_config()
         if conf == []:
-            command = 'docker-compose up'
+            command = 'docker-compose up -d'
         else:
             expand_conf = '-f {} '*len(conf)
             expand_conf = expand_conf.format(*conf)
