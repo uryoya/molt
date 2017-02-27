@@ -1,6 +1,7 @@
 #console {
     height: 500px;
     margin: 10px; padding:10px;
+    overflow: scroll;
     color: lightgray;
     background-color: black;
     font-family: monospace;
