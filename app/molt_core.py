@@ -1,4 +1,6 @@
 import pathlib
+import glob
+import re
 import subprocess
 import shlex
 
@@ -17,6 +19,26 @@ class Molt:
                         self._compose_build, self._compose_up):
             for row in command().stdout:
                 yield row
+
+    def get_molt_config(self):
+        """ molt-config.yml ファイルからmoltの設定を読み込む
+        e.g. molt-config.yml:
+        MOLT: FILE: file1, file2, ...
+        [EOF]
+        """
+        if 'molt-config.yml' in glob.glob(self.repo_dir):
+            return []
+
+        with open(self.repo_dir + '/molt-config.yml', 'r') as f:
+            moltcfg = f.read()
+        p = re.compile(r'^# MOLT: (?P<file>FILE: ?.+[ $]?)')    # FILE:要素の取得
+        m = p.match(moltcfg)
+        files = m.group('file')
+        p = re.compile(r'^FILE: ?(?P<conf_files>.+[ $]?)')    # 要素の内容
+        m = p.match(files)
+        conf_files = m.group('conf_files')
+        return conf_files.split(',')
+
 
     def _git_clone(self):
         command = 'git clone --progress {} {}'.format(self.repo_url,
@@ -48,10 +70,12 @@ class Molt:
 
 
 if __name__ == '__main__':
-    rev = '2ea1328'
-    repo = 'swkoubou.rms'
+    rev = '4809f18'
+    repo = 'molt-test'
     user = 'swkoubou'
 
     m = Molt(rev, repo, user)
     for line in m.molt():
         print(line.decode(), end='', flush=True)
+    print()
+    print(m.get_molt_config())
