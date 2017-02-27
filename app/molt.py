@@ -1,13 +1,20 @@
 import re
 
-from flask import Flask, Response
+from flask import Flask, Response, render_template
 from molt_core import Molt
 
 app = Flask(__name__)
 
 
-@app.route('/<virtual_host>', methods=['POST'])
+@app.route('/<virtual_host>')
 def index(virtual_host):
+    rev, repo, user = virtual_host_parse(virtual_host)
+    vhost = {'rev': rev, 'repo': repo, 'user': user}
+    return render_template('index.html', vhost=vhost)
+
+
+@app.route('/molt/<virtual_host>', methods=['POST'])
+def molt(virtual_host):
     rev, repo, user = virtual_host_parse(virtual_host)
     m = Molt(rev, repo, user)
 
