@@ -13,15 +13,17 @@ def index(virtual_host):
     return render_template('index.html', vhost=vhost)
 
 
-@app.route('/molt/<virtual_host>', methods=['POST'])
+@app.route('/molt/<virtual_host>', methods=['GET'])
 def molt(virtual_host):
     rev, repo, user = virtual_host_parse(virtual_host)
     m = Molt(rev, repo, user)
 
     def generate(m):     # For streaming
         for row in m.molt():
-            yield row
-    return Response(generate(m), mimetype='text/text')
+            row = row.decode()
+            data = row.split('\r')[-1]    # CRのみの行は保留されるので取り除く
+            yield event_stream_parser(data)
+    return Response(generate(m), mimetype='text/event-stream')
 
 
 def virtual_host_parse(virtual_host):
@@ -32,6 +34,22 @@ def virtual_host_parse(virtual_host):
     p = re.compile(r'(?P<rev>^.+?)\.(?P<repo>.+)\.(?P<user>.+)$')
     m = p.search(virtual_host)
     return m.group('rev'), m.group('repo'), m.group('user')
+
+
+def event_stream_parser(data, event=None, id=None, retry=None):
+    """ Server-Sent Event 形式へのパーサ
+    info: https://developer.mozilla.org/ja/docs/Server-sent_events/Using_server-sent_events
+    """
+    event_stream = ''
+    if event != None:
+        event_stream += 'event: {}\n'.format(event)
+    event_stream += 'data: {}\n'.format(data)
+    if id != None:
+        event_stream += 'id: {}\n'.format(id)
+    if retry != None:
+        event_stream += 'retry: {}\n'.format(id)
+    event_stream += '\n'
+    return event_stream
 
 
 if __name__ == '__main__':

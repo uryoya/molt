@@ -1,7 +1,10 @@
-.console {
-    height: 100px;
+#console {
+    height: 500px;
     margin: 10px; padding:10px;
     color: lightgray;
     background-color: black;
     font-family: monospace;
+}
+.console-row {
+    margin: 0px; padding: 0px;
 }
