@@ -5,6 +5,13 @@ function moltUrl() {
     return `/molt/${rev}.${repo}.${user}`
 }
 
+function vhost() {
+    rev = document.getElementById('rev').innerHTML
+    repo = document.getElementById('repo').innerHTML
+    user = document.getElementById('user').innerHTML
+    return {rev: rev, repo: repo, user: user}
+}
+
 const evtSource = new EventSource(moltUrl());
 evtSource.onmessage = function(e) {
     const newElement = document.createElement("p");
@@ -14,4 +21,6 @@ evtSource.onmessage = function(e) {
 }
 evtSource.onerror = function(e) {
     evtSource.close();
+    vh = vhost();
+    location.href = `http://${vh.rev}.${vh.repo}.${vh.user}.swkoubou.com/`
 }
