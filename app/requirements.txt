@@ -1,4 +1,5 @@
+docker==2.1.0
 Flask==0.12
 Jinja2==2.9.5
-uWSGI==2.0.14
-
+redis==2.10.5
+requests==2.13.0
