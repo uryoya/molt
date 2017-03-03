@@ -1,4 +1,6 @@
 import re
+import redis
+import docker
 
 from flask import Flask, Response, render_template
 from molt_core import Molt
@@ -17,12 +19,20 @@ def index(virtual_host):
 def molt(virtual_host):
     rev, repo, user = virtual_host_parse(virtual_host)
     m = Molt(rev, repo, user)
+    r = redis.StrictRedis()
 
     def generate(m):     # For streaming
+    """ Dockerイメージ立ち上げ
+    git clone から docker-compose upまでの一連の処理のSTDIOの送信と、Dockerイメージ
+    の情報取得・設定をする
+    """
+        # コマンド群の実行
         for row in m.molt():
             row = row.decode()
             data = row.split('\r')[-1]    # CRのみの行は保留されるので取り除く
             yield event_stream_parser(data)
+        #
+        r.hset('mirror-store', virtual_host, conainer_ip)
     return Response(generate(m), mimetype='text/event-stream')
 
 
