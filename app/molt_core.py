@@ -3,6 +3,7 @@ import glob
 import re
 import subprocess
 import shlex
+import docker
 
 
 class Molt:
@@ -19,6 +20,12 @@ class Molt:
                         self._compose_build, self._compose_up):
             for row in command().stdout:
                 yield row
+
+    def get_container_ip(self):
+        """ molt で生成したコンテナのIPアドレスを取得する """
+        client = docker.from_env()
+        container = client.containers.get('container name')
+        return container.attrs['NetworkSettings']['IPAddress']
 
     def get_molt_config(self):
         """ molt-config.yml ファイルからmoltの設定を読み込む
@@ -38,7 +45,6 @@ class Molt:
         m = p.match(files)
         conf_files = m.group('conf_files')
         return conf_files.split(',')
-
 
     def _git_clone(self):
         command = 'git clone --progress {} {}'.format(self.repo_url,
