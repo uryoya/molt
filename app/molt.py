@@ -22,7 +22,7 @@ def molt(virtual_host):
     r = redis.StrictRedis()
 
     def generate(m):     # For streaming
-    """ Dockerイメージ立ち上げ
+        """ Dockerイメージ立ち上げ
     git clone から docker-compose upまでの一連の処理のSTDIOの送信と、Dockerイメージ
     の情報取得・設定をする
     """
