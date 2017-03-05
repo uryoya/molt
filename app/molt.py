@@ -23,7 +23,6 @@ def molt(virtual_host):
     m = Molt(rev, repo, user)
     r = redis.StrictRedis()
 
-
     def generate(m):
         """Dockerイメージ立ち上げ(ストリーミングするための関数).
 
