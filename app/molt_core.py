@@ -1,6 +1,4 @@
 """Molt Core Interfaces."""
-import glob
-import re
 import subprocess
 import shlex
 import docker
@@ -22,6 +20,10 @@ class Molt:
         self.repo_dir = str(Path('./repos') / user / repo / rev)
         self.molt_yml_fp = None
 
+    def __del__(self):
+        """デストラクタ."""
+        self.molt_yml_fp.close()
+
     def molt(self):
         """Gitリポジトリのクローンと、Dockerイメージの立ち上げ."""
         for command in (self._git_clone, self._git_checkout,
@@ -35,6 +37,11 @@ class Molt:
         client = docker.from_env()
         container = client.containers.get('container name')
         return container.attrs['NetworkSettings']['IPAddress']
+
+    def gen_container_name(self):
+        """docker-compose.ymlで使用するcontainer_nameを生成する."""
+        molt_conf = self.get_molt_config_files()
+        return '-'.join([self.user, self.repo, self.rev, molt_conf['entry']])
 
     def get_molt_config_files(self):
         """molt-config.yml ファイルからmoltの設定を読み込む.
@@ -75,13 +82,11 @@ class Molt:
                 data.update(yaml.load(f))    # 各yamlファイルを統合・上書き
         molt_conf = self.get_molt_config_files()
         # container_nameの追加
-        data['container_name'] = '-'.join([self.user, self.repo, self.rev,
-                                           molt_conf['entry']])
+        data['services']['web']['container_name'] = self.gen_container_name()
         # 変更したcompose fileの書き出し
-        fp = tempfile.TemporaryFile(mode='w')
+        fp = tempfile.NamedTemporaryFile(mode='w')
         yaml.dump(data, fp)
         self.molt_yml_fp = fp
-        print(fp.name)
 
         # メソッドの形式を同じにするためにsubprocessを使用
         command = 'echo "moltの設定ファイルを生成中..."'
