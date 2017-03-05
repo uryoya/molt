@@ -1,0 +1,19 @@
+version: '3'
+services:
+  proxy:
+    image: unblee/mirror
+    environment:
+      - LISTEN_PORT=8000
+      - BASE_DOMAIN=127.0.0.1.xip.io
+      - DEFAULT_DEST_URL=http://172.19.0.1:5000/{}
+      - DB_HOST=redis
+    ports:
+      - 80:8000
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    ports:
+      - 6379:6379
+
