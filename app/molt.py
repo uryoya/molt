@@ -33,7 +33,6 @@ def molt(virtual_host):
         for row in m.molt():
             row = row.decode()
             data = row.split('\r')[-1]    # CRのみの行は保留されるので取り除く
-            print(data)
             yield event_stream_parser(data)
         # RedisへIPアドレスとバーチャルホストの対応を書き込む
         r.hset('mirror-store', virtual_host, m.get_container_ip())
