@@ -2,7 +2,7 @@
 import re
 import redis
 
-from flask import Flask, Response, render_template
+from flask import Flask, Response, render_template, abort
 from molt_core import Molt
 
 app = Flask(__name__)
@@ -37,6 +37,12 @@ def molt(virtual_host):
         # RedisへIPアドレスとバーチャルホストの対応を書き込む
         r.hset('mirror-store', virtual_host, m.get_container_ip())
     return Response(generate(m), mimetype='text/event-stream')
+
+
+@app.route('/favicon.ico')
+def favicon():
+    """favicon.ico."""
+    abort(404)
 
 
 def virtual_host_parse(virtual_host):

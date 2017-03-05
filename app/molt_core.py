@@ -36,8 +36,8 @@ class Molt:
         """Moltで生成したコンテナのIPアドレスを取得する."""
         client = docker.from_env()
         container = client.containers.get(self.gen_container_name())
-        name = list(container.attrs['NetworkSettings']['Networks'].keys())[0]
-        return container.attrs['NetworkSettings']['Networks'][name]['IPAddress']
+        key = list(container.attrs['NetworkSettings']['Networks'].keys())[0]
+        return container.attrs['NetworkSettings']['Networks'][key]['IPAddress']
 
     def gen_container_name(self):
         """docker-compose.ymlで使用するcontainer_nameを生成する."""
