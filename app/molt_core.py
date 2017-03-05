@@ -1,10 +1,13 @@
 """Molt Core Interfaces."""
-import pathlib
 import glob
 import re
 import subprocess
 import shlex
 import docker
+import yaml
+import tempfile
+
+from pathlib import Path
 
 
 class Molt:
@@ -16,11 +19,13 @@ class Molt:
         self.repo = repo
         self.user = user
         self.repo_url = 'https://github.com/{}/{}.git/'.format(user, repo)
-        self.repo_dir = str(pathlib.Path('./repos') / user / repo / rev)
+        self.repo_dir = str(Path('./repos') / user / repo / rev)
+        self.molt_yml_fp = None
 
     def molt(self):
         """Gitリポジトリのクローンと、Dockerイメージの立ち上げ."""
         for command in (self._git_clone, self._git_checkout,
+                        self._marge_docker_compose,
                         self._compose_build, self._compose_up):
             for row in command().stdout:
                 yield row
@@ -31,26 +36,21 @@ class Molt:
         container = client.containers.get('container name')
         return container.attrs['NetworkSettings']['IPAddress']
 
-    def get_molt_config(self):
+    def get_molt_config_files(self):
         """molt-config.yml ファイルからmoltの設定を読み込む.
 
         e.g. molt-config.yml:
-        MOLT: FILE: file1, file2, ...
+        MOLT: FILE: file1 file2 ... ENTRY: entryname
         [EOF]
         """
-        if 'molt-config.yml' in glob.glob(self.repo_dir):
-            return []
-
         with open(self.repo_dir + '/molt-config.yml', 'r') as f:
-            moltcfg = f.read()
-        p = re.compile(r'^# MOLT: (?P<file>FILE: ?.+[ $]?)')    # FILE:要素の取得
-        m = p.match(moltcfg)
-        files = m.group('file')
-        p = re.compile(r'^FILE: ?(?P<conf_files>.+[ $]?)')    # 要素の内容
-        m = p.match(files)
-        conf_files = m.group('conf_files')
-        return conf_files.split(',')
+            s = f.read()
+        moltcfg = s.split()
+        files = moltcfg[moltcfg.index('FILE:') + 1:moltcfg.index('ENTRY:')]
+        entry = moltcfg[moltcfg.index('ENTRY:') + 1:][0]
+        return {'file': files, 'entry': entry}
 
+    # 以下はSHELLで実行するコマンドの記述
     def _git_clone(self):
         command = 'git clone --progress {} {}'.format(self.repo_url,
                                                       self.repo_dir)
@@ -65,13 +65,40 @@ class Molt:
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
 
+    def _marge_docker_compose(self):
+        """Molt用にdocker-compose.ymlを統合して書き換える."""
+        molt_conf = self.get_molt_config_files()
+        compose_files = molt_conf['file']
+        data = {}
+        for filename in compose_files:
+            with open(str(Path(self.repo_dir) / filename), 'r') as f:
+                data.update(yaml.load(f))    # 各yamlファイルを統合・上書き
+        molt_conf = self.get_molt_config_files()
+        # container_nameの追加
+        data['container_name'] = '-'.join([self.user, self.repo, self.rev,
+                                           molt_conf['entry']])
+        # 変更したcompose fileの書き出し
+        fp = tempfile.TemporaryFile(mode='w')
+        yaml.dump(data, fp)
+        self.molt_yml_fp = fp
+        print(fp.name)
+
+        # メソッドの形式を同じにするためにsubprocessを使用
+        command = 'echo "moltの設定ファイルを生成中..."'
+        return subprocess.Popen(shlex.split(command),
+                                cwd=self.repo_dir,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+
     def _compose_build(self):
-        conf = self.get_molt_config()
-        if conf == []:
+        molt_conf = self.get_molt_config_files()
+        compose_files = molt_conf['file']
+        if compose_files == []:
             command = 'docker-compose build --no-cache'
         else:
-            expand_conf = '-f {} '*len(conf)
-            expand_conf = expand_conf.format(*conf)
+            compose_files.append(self.molt_yml_fp.name)
+            expand_conf = '-f {} '*len(compose_files)
+            expand_conf = expand_conf.format(*compose_files)
             command = 'docker-compose ' + expand_conf + 'build --no-cache'
         return subprocess.Popen(shlex.split(command),
                                 cwd=self.repo_dir,
@@ -79,12 +106,14 @@ class Molt:
                                 stderr=subprocess.STDOUT)
 
     def _compose_up(self):
-        conf = self.get_molt_config()
-        if conf == []:
+        molt_conf = self.get_molt_config_files()
+        compose_files = molt_conf['file']
+        if compose_files == []:
             command = 'docker-compose up -d'
         else:
-            expand_conf = '-f {} '*len(conf)
-            expand_conf = expand_conf.format(*conf)
+            compose_files.append(self.molt_yml_fp.name)
+            expand_conf = '-f {} '*len(compose_files)
+            expand_conf = expand_conf.format(*compose_files)
             command = 'docker-compose ' + expand_conf + 'up -d'
         return subprocess.Popen(shlex.split(command),
                                 cwd=self.repo_dir,
