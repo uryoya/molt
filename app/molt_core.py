@@ -1,12 +1,17 @@
+"""Molt Core Interfaces."""
 import pathlib
 import glob
 import re
 import subprocess
 import shlex
+import docker
 
 
 class Molt:
+    """指定されたvirtual_hostを元にDockerイメージの立ち上げ・管理をする."""
+
     def __init__(self, rev, repo, user):
+        """コンストラクタ."""
         self.rev = rev
         self.repo = repo
         self.user = user
@@ -14,14 +19,21 @@ class Molt:
         self.repo_dir = str(pathlib.Path('./repos') / user / repo / rev)
 
     def molt(self):
-        """ gitリポジトリのクローンと、Dockerイメージの立ち上げ """
+        """Gitリポジトリのクローンと、Dockerイメージの立ち上げ."""
         for command in (self._git_clone, self._git_checkout,
                         self._compose_build, self._compose_up):
             for row in command().stdout:
                 yield row
 
+    def get_container_ip(self):
+        """Moltで生成したコンテナのIPアドレスを取得する."""
+        client = docker.from_env()
+        container = client.containers.get('container name')
+        return container.attrs['NetworkSettings']['IPAddress']
+
     def get_molt_config(self):
-        """ molt-config.yml ファイルからmoltの設定を読み込む
+        """molt-config.yml ファイルからmoltの設定を読み込む.
+
         e.g. molt-config.yml:
         MOLT: FILE: file1, file2, ...
         [EOF]
@@ -38,7 +50,6 @@ class Molt:
         m = p.match(files)
         conf_files = m.group('conf_files')
         return conf_files.split(',')
-
 
     def _git_clone(self):
         command = 'git clone --progress {} {}'.format(self.repo_url,
