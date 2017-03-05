@@ -1,15 +1,13 @@
-function moltUrl() {
-    rev = document.getElementById('rev').innerHTML
-    repo = document.getElementById('repo').innerHTML
-    user = document.getElementById('user').innerHTML
-    return `/molt/${rev}.${repo}.${user}`
-}
-
 function vhost() {
     rev = document.getElementById('rev').innerHTML
     repo = document.getElementById('repo').innerHTML
     user = document.getElementById('user').innerHTML
     return {rev: rev, repo: repo, user: user}
+}
+
+function moltUrl() {
+    vh = vhost();
+    return `/molt/${vh.rev}.${vh.repo}.${vh.user}`
 }
 
 const evtSource = new EventSource(moltUrl());
