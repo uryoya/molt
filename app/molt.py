@@ -23,7 +23,7 @@ def molt(virtual_host):
     m = Molt(rev, repo, user)
     r = redis.StrictRedis()
 
-    def generate(m):
+    def generate(m, r):
         """Dockerイメージ立ち上げ(ストリーミングするための関数).
 
         git clone から docker-compose upまでの一連の処理のSTDIOの送信と、Dockerイメージ
@@ -33,10 +33,11 @@ def molt(virtual_host):
         for row in m.molt():
             row = row.decode()
             data = row.split('\r')[-1]    # CRのみの行は保留されるので取り除く
+            print(data)
             yield event_stream_parser(data)
         # RedisへIPアドレスとバーチャルホストの対応を書き込む
         r.hset('mirror-store', virtual_host, m.get_container_ip())
-    return Response(generate(m), mimetype='text/event-stream')
+    return Response(generate(m, r), mimetype='text/event-stream')
 
 
 @app.route('/favicon.ico')
@@ -59,12 +60,12 @@ def virtual_host_parse(virtual_host):
 def event_stream_parser(data, event=None, id=None, retry=None):
     """Server-Sent Event 形式へのパーサ."""
     event_stream = ''
-    if not event:
+    if event:
         event_stream += 'event: {}\n'.format(event)
     event_stream += 'data: {}\n'.format(data)
-    if not id:
+    if id:
         event_stream += 'id: {}\n'.format(id)
-    if not retry:
+    if retry:
         event_stream += 'retry: {}\n'.format(id)
     event_stream += '\n'
     return event_stream
