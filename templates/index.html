@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Molt | {{ vhost.repo }}</title>
-    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css')|base_domain }}">
 </head>
 <body>
     <h1>{{ vhost.repo }} molting now...</h1>
@@ -13,6 +13,6 @@
     </table>
     <div id=console></div>
 
-    <script src="{{ url_for('static', filename='molt.js') }}"></script>
+    <script src="{{ url_for('static', filename='molt.js')|base_domain }}"></script>
 </body>
 </html>
