@@ -1,6 +1,9 @@
 """Molt Web API with Interface."""
 import re
 import redis
+import docker
+import subprocess
+import shlex
 
 from flask import Flask, Response, render_template, abort
 from molt import Molt
@@ -82,4 +85,11 @@ def event_stream_parser(data, event=None, id=None, retry=None):
 
 
 if __name__ == '__main__':
+    clinet = docker.from_env()
+    networks = clinet.networks.list()
+    if 'molt-network' not in [network.name for network in networks]:
+        command = 'docker network create --subnet=172.28.0.0/16 --ip-range=172.28.0.0/24 --gateway=172.28.0.254 -o "com.docker.network.bridge.host_binding_ipv4"="172.28.0.254" molt-network'
+        command = shlex.split(command)
+        subprocess.Popen(command)
+
     app.run(host=app.config['HOST'], port=app.config['PORT'])

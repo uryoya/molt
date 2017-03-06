@@ -5,7 +5,7 @@ services:
     environment:
       - LISTEN_PORT=8000
       - BASE_DOMAIN=127.0.0.1.xip.io
-      - DEFAULT_DEST_URL=http://172.19.0.1:5000/{}
+      - DEFAULT_DEST_URL=http://172.28.0.254:5000/{}
       - DB_HOST=redis
     ports:
       - 80:8000
@@ -17,3 +17,7 @@ services:
     ports:
       - 6379:6379
 
+networks:
+  default:
+    external:
+      name: molt-network

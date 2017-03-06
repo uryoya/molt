@@ -84,6 +84,7 @@ class Molt:
         molt_conf = self.get_molt_config_files()
         # container_nameの追加
         data['services']['web']['container_name'] = self.gen_container_name()
+        data['networks'] = {'default': {'external': {'name': 'molt-network'}}}
         # 変更したcompose fileの書き出し
         fp = tempfile.NamedTemporaryFile(mode='w')
         yaml.dump(data, fp)
@@ -97,6 +98,7 @@ class Molt:
                                 stderr=subprocess.STDOUT)
 
     def _compose_build(self):
+        print('compose build')
         molt_conf = self.get_molt_config_files()
         compose_files = molt_conf['file']
         if compose_files == []:
@@ -112,6 +114,7 @@ class Molt:
                                 stderr=subprocess.STDOUT)
 
     def _compose_up(self):
+        print('compose up')
         molt_conf = self.get_molt_config_files()
         compose_files = molt_conf['file']
         if compose_files == []:
