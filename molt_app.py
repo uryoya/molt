@@ -13,7 +13,7 @@ app.config.from_pyfile('config/molt_app.cfg', silent=True)
 def index(virtual_host):
     """Moltの実行をプレビューするページ."""
     rev, repo, user = virtual_host_parse(virtual_host)
-    vhost = {'rev': rev, 'repo': repo, 'user': user}
+    vhost = {'rev': rev, 'repo': repo, 'user': user, 'full': virtual_host}
     return render_template('index.html', vhost=vhost)
 
 

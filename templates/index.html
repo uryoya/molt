@@ -2,7 +2,19 @@
 <html>
 <head>
     <title>Molt | {{ vhost.repo }}</title>
-    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css')|base_domain }}">
+    <style>
+    #console {
+      height: 500px;
+      margin: 10px; padding:10px;
+      overflow: scroll;
+      color: lightgray;
+      background-color: black;
+      font-family: monospace;
+    }
+    .console-row {
+      margin: 0px; padding: 0px;
+    }
+    </style>
 </head>
 <body>
     <h1>{{ vhost.repo }} molting now...</h1>
@@ -13,6 +25,18 @@
     </table>
     <div id=console></div>
 
-    <script src="{{ url_for('static', filename='molt.js')|base_domain }}"></script>
+    <script>
+    const evtSource = new EventSource("/molt/{{ vhost.full }}");
+    evtSource.onmessage = function(e) {
+      const newElement = document.createElement("p");
+      newElement.className = 'console-row';
+      newElement.innerHTML = e.data;
+      document.getElementById('console').appendChild(newElement);
+    }
+    evtSource.onerror = function(e) {
+      evtSource.close();
+      location.href = `//{{ vhost.full|base_domain }}`
+    }
+    </script>
 </body>
 </html>
