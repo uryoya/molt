@@ -6,6 +6,7 @@ from flask import Flask, Response, render_template, abort
 from molt import Molt
 
 app = Flask(__name__)
+app.config.from_pyfile('config/molt_app.cfg', silent=True)
 
 
 @app.route('/<virtual_host>')
@@ -21,7 +22,8 @@ def molt(virtual_host):
     """Moltの実行をストリーミングする(Server-Sent Eventを使ったAPI)."""
     rev, repo, user = virtual_host_parse(virtual_host)
     m = Molt(rev, repo, user)
-    r = redis.StrictRedis()
+    r = redis.StrictRedis(host=app.config['REDIS_HOST'],
+                          port=app.config['REDIS_PORT'])
 
     def generate(m, r):
         """Dockerイメージ立ち上げ(ストリーミングするための関数).
@@ -71,4 +73,4 @@ def event_stream_parser(data, event=None, id=None, retry=None):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    app.run(host=app.config['HOST'], port=app.config['PORT'])

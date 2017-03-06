@@ -12,3 +12,4 @@ ENV/
 repos/*
 !repos/.gitkeep
 build/
+config/molt_app.cfg
