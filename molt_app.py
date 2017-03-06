@@ -5,8 +5,9 @@ import docker
 import subprocess
 import os
 import shlex
+import requests
 
-from flask import Flask, Response, render_template, abort
+from flask import Flask, Response, render_template, abort, request
 from molt import Molt
 
 app = Flask(__name__)
@@ -58,6 +59,39 @@ def base_domain_filter(path):
     """Staticファイルを呼び出す際のドメインを指定する."""
     return '//' + app.config['BASE_DOMAIN'] + ':' + str(app.config['PORT']) + \
         '/' + path
+
+
+@app.route("/hook", methods=['POST'])
+def hook():
+    event = request.headers["X-GitHub-Event"]
+    req = request.json
+    action = req["action"]
+    if event != "pull_request" and action not in {"opened", "synchronize"}:
+        return "ok", 200
+
+    pr = req["pull_request"]
+    pr_url = pr["comments_url"]
+    pr_sha = pr["head"]["sha"][:7]
+    pr_reponame = pr["head"]["repo"]["name"]
+    pr_owner = pr["head"]["repo"]["owner"]["login"]
+
+    payload = {
+        "event": "COMMENT",
+        "body": "Launched the preview environment!\nhttp://{}.{}.{}.{}\
+        ".format(pr_sha, pr_reponame, pr_owner, app.config["BASE_DOMAIN"]),
+    }
+    headers = {
+        "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
+        "Authorization": "token {}".format(app.config["GITHUB_TOKEN"]),
+    }
+    requests.post(
+        pr_url,
+        json=payload,
+        headers=headers,
+    )
+
+    return "ok", 200
 
 
 def virtual_host_parse(virtual_host):
