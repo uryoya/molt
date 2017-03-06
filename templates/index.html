@@ -35,7 +35,7 @@
     }
     evtSource.onerror = function(e) {
       evtSource.close();
-      location.href = `{{ vhost.full|base_domain }}`
+      location.href = `{{ redirect_url }}`
     }
     </script>
 </body>
