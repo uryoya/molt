@@ -1,4 +1,0 @@
-flake8==3.3.0
-flake8-import-order==0.12
-yapf==0.16.0
-
