@@ -14,9 +14,7 @@ def index(virtual_host):
     """Moltの実行をプレビューするページ."""
     rev, repo, user = virtual_host_parse(virtual_host)
     vhost = {'rev': rev, 'repo': repo, 'user': user, 'full': virtual_host}
-    redirect_url = '{}.{}:{}/'.format(virtual_host,
-                                      app.config['BASE_DOMAIN'],
-                                      str(app.config['PORT']))
+    redirect_url = '//{}.{}/'.format(virtual_host, app.config['BASE_DOMAIN'])
     return render_template('index.html', vhost=vhost,
                            redirect_url=redirect_url)
 
