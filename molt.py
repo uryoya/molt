@@ -16,7 +16,7 @@ class Molt:
         self.rev = rev
         self.repo = repo
         self.user = user
-        self.repo_url = 'https://github.com/{}/{}.git/'.format(user, repo)
+        self.repo_url = 'git@github.com:{}/{}.git'.format(user, repo)
         self.repo_dir = str(Path('./repos') / user / repo / rev)
         self.molt_yml_fp = None
 

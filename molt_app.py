@@ -3,6 +3,7 @@ import re
 import redis
 import docker
 import subprocess
+import os
 import shlex
 
 from flask import Flask, Response, render_template, abort
@@ -85,6 +86,13 @@ def event_stream_parser(data, event=None, id=None, retry=None):
 
 
 if __name__ == '__main__':
+    # RSA鍵の生成
+    user = os.getenv('USER')
+    if not os.path.exists('/home/{}/.ssh/id_rsa.pub'.format(user)):
+        command = 'ssh-keygen -t rsa -N ""'
+        command = shlex.split(command)
+        subprocess.Popen(command)
+    # Dockerネットワークの作成
     clinet = docker.from_env()
     networks = clinet.networks.list()
     if 'molt-network' not in [network.name for network in networks]:
