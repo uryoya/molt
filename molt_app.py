@@ -88,10 +88,12 @@ def event_stream_parser(data, event=None, id=None, retry=None):
 if __name__ == '__main__':
     # RSA鍵の生成
     user = os.getenv('USER')
-    if not os.path.exists('/home/{}/.ssh/id_rsa.pub'.format(user)):
-        command = 'ssh-keygen -t rsa -N ""'
+    ssh_key_path = os.path.expanduser("~")+"/.ssh/molt_deploy_key"
+    if not os.path.exists(ssh_key_path):
+        command = 'ssh-keygen -t rsa -N "" -f {}'.format(ssh_key_path)
         command = shlex.split(command)
         subprocess.Popen(command)
+
     # Dockerネットワークの作成
     clinet = docker.from_env()
     networks = clinet.networks.list()
