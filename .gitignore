@@ -9,6 +9,6 @@ venv/
 ENV/
 
 # Molt Project Only
-app/repos/*
-!app/repos/.gitkeep
-app/build/
+repos/*
+!repos/.gitkeep
+build/
