@@ -48,9 +48,10 @@ def favicon():
 
 
 @app.template_filter('base_domain')
-def base_domain_filter(s):
+def base_domain_filter(path):
     """Staticファイルを呼び出す際のドメインを指定する."""
-    return '//' + app.config['BASE_DOMAIN'] + ':' + str(app.config['PORT']) + s
+    return '//' + app.config['BASE_DOMAIN'] + ':' + str(app.config['PORT']) + \
+        '/' + path
 
 
 def virtual_host_parse(virtual_host):
