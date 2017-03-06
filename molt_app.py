@@ -88,7 +88,7 @@ if __name__ == '__main__':
     clinet = docker.from_env()
     networks = clinet.networks.list()
     if 'molt-network' not in [network.name for network in networks]:
-        command = 'docker network create --subnet=172.28.0.0/16 --ip-range=172.28.0.0/24 --gateway=172.28.0.254 -o "com.docker.network.bridge.host_binding_ipv4"="172.28.0.254" molt-network'
+        command = 'docker network create --subnet=172.28.0.0/16 --ip-range=172.28.0.0/24 --gateway=172.28.0.254 -o "com.docker.network.bridge.host_binding_ipv4"="0.0.0.0" molt-network'
         command = shlex.split(command)
         subprocess.Popen(command)
 
