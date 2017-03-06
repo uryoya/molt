@@ -35,14 +35,15 @@ class Molt:
     def get_container_ip(self):
         """Moltで生成したコンテナのIPアドレスを取得する."""
         client = docker.from_env()
-        container = client.containers.get(self.gen_container_name())
+        molt_conf = self.get_molt_config_files()
+        container = client.containers.get(
+                self.gen_container_name(molt_conf['entry']))
         key = list(container.attrs['NetworkSettings']['Networks'].keys())[0]
         return container.attrs['NetworkSettings']['Networks'][key]['IPAddress']
 
-    def gen_container_name(self):
+    def gen_container_name(self, service_name):
         """docker-compose.ymlで使用するcontainer_nameを生成する."""
-        molt_conf = self.get_molt_config_files()
-        return '-'.join([self.user, self.repo, self.rev, molt_conf['entry']])
+        return '-'.join([self.user, self.repo, self.rev, service_name])
 
     def get_molt_config_files(self):
         """molt-config.yml ファイルからmoltの設定を読み込む.
@@ -82,9 +83,9 @@ class Molt:
         for filename in compose_files:
             with open(str(Path(self.repo_dir) / filename), 'r') as f:
                 data.update(yaml.load(f))    # 各yamlファイルを統合・上書き
-        molt_conf = self.get_molt_config_files()
         # container_nameの追加
-        data['services']['web']['container_name'] = self.gen_container_name()
+        for s_name, s_conf in data['services'].items():
+            s_conf['container_name'] = self.gen_container_name(s_name)
         data['networks'] = {'default': {'external': {'name': 'molt-network'}}}
         # 変更したcompose fileの書き出し
         fp = tempfile.NamedTemporaryFile(mode='w')
