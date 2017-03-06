@@ -5,8 +5,9 @@ import docker
 import subprocess
 import os
 import shlex
+import requests
 
-from flask import Flask, Response, render_template, abort
+from flask import Flask, Response, render_template, abort, request
 from molt import Molt
 
 app = Flask(__name__)
@@ -60,6 +61,39 @@ def base_domain_filter(path):
         '/' + path
 
 
+@app.route("/hook", methods=['POST'])
+def hook():
+    event = request.headers["X-GitHub-Event"]
+    req = request.json
+    action = req["action"]
+    if event != "pull_request" and action not in {"opened", "synchronize"}:
+        return "ok", 200
+
+    pr = req["pull_request"]
+    pr_url = pr["comments_url"]
+    pr_sha = pr["head"]["sha"][:7]
+    pr_reponame = pr["head"]["repo"]["name"]
+    pr_owner = pr["head"]["repo"]["owner"]["login"]
+
+    payload = {
+        "event": "COMMENT",
+        "body": "Launched the preview environment!\nhttp://{}.{}.{}.{}\
+        ".format(pr_sha, pr_reponame, pr_owner, app.config["BASE_DOMAIN"]),
+    }
+    headers = {
+        "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
+        "Authorization": "token {}".format(app.config["GITHUB_TOKEN"]),
+    }
+    requests.post(
+        pr_url,
+        json=payload,
+        headers=headers,
+    )
+
+    return "ok", 200
+
+
 def virtual_host_parse(virtual_host):
     """Virtual_hostの文字列を 'rev', 'repo', 'user' に分割する.
 
@@ -88,10 +122,12 @@ def event_stream_parser(data, event=None, id=None, retry=None):
 if __name__ == '__main__':
     # RSA鍵の生成
     user = os.getenv('USER')
-    if not os.path.exists('/home/{}/.ssh/id_rsa.pub'.format(user)):
-        command = 'ssh-keygen -t rsa -N ""'
+    ssh_key_path = os.path.expanduser("~")+"/.ssh/molt_deploy_key"
+    if not os.path.exists(ssh_key_path):
+        command = 'ssh-keygen -t rsa -N "" -f {}'.format(ssh_key_path)
         command = shlex.split(command)
         subprocess.Popen(command)
+
     # Dockerネットワークの作成
     clinet = docker.from_env()
     networks = clinet.networks.list()
