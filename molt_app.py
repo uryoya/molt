@@ -7,11 +7,13 @@ import os
 import shlex
 import requests
 
-from flask import Flask, Response, render_template, abort, request
+from flask import Flask, render_template, abort, request
+from flask_socketio import SocketIO, emit, disconnect
 from molt import Molt
 
 app = Flask(__name__)
 app.config.from_pyfile('config/molt_app.cfg', silent=True)
+socketio = SocketIO(app)
 
 
 @app.route('/<virtual_host>')
@@ -24,28 +26,21 @@ def index(virtual_host):
                            redirect_url=redirect_url)
 
 
-@app.route('/molt/<virtual_host>', methods=['GET'])
-def molt(virtual_host):
-    """Moltの実行をストリーミングする(Server-Sent Eventを使ったAPI)."""
-    rev, repo, user = virtual_host_parse(virtual_host)
-    m = Molt(rev, repo, user)
+@socketio.on('molt')
+def handle_molt(virtual_host):
+    """Moltの実行をストリーミングする(WebSocketを使ったAPI)."""
+    print(virtual_host)
+    m = Molt(virtual_host['rev'], virtual_host['repo'], virtual_host['user'])
     r = redis.StrictRedis(host=app.config['REDIS_HOST'],
                           port=app.config['REDIS_PORT'])
-
-    def generate(m, r):
-        """Dockerイメージ立ち上げ(ストリーミングするための関数).
-
-        git clone から docker-compose upまでの一連の処理のSTDIOの送信と、Dockerイメージ
-        の情報取得・設定をする
-        """
-        # コマンド群の実行
-        for row in m.molt():
-            row = row.decode()
-            data = row.split('\r')[-1]    # CRのみの行は保留されるので取り除く
-            yield event_stream_parser(data)
-        # RedisへIPアドレスとバーチャルホストの対応を書き込む
-        r.hset('mirror-store', virtual_host, m.get_container_ip())
-    return Response(generate(m, r), mimetype='text/event-stream')
+    # コマンド群の実行と経過の送信
+    for row in m.molt():
+        row = row.decode()
+        data = row.split('\r')[-1]    # CRのみの行は保留されるので取り除く
+        emit('stdio', {'data': data})
+    # RedisへIPアドレスとバーチャルホストの対応を書き込む
+    r.hset('mirror-store', virtual_host, m.get_container_ip())
+    disconnect()
 
 
 @app.route('/favicon.ico')
@@ -105,20 +100,6 @@ def virtual_host_parse(virtual_host):
     return m.group('rev'), m.group('repo'), m.group('user')
 
 
-def event_stream_parser(data, event=None, id=None, retry=None):
-    """Server-Sent Event 形式へのパーサ."""
-    event_stream = ''
-    if event:
-        event_stream += 'event: {}\n'.format(event)
-    event_stream += 'data: {}\n'.format(data)
-    if id:
-        event_stream += 'id: {}\n'.format(id)
-    if retry:
-        event_stream += 'retry: {}\n'.format(id)
-    event_stream += '\n'
-    return event_stream
-
-
 if __name__ == '__main__':
     # RSA鍵の生成
     user = os.getenv('USER')
@@ -139,4 +120,4 @@ if __name__ == '__main__':
         command = shlex.split(command)
         subprocess.Popen(command)
 
-    app.run(host=app.config['HOST'], port=app.config['PORT'])
+    socketio.run(app, host=app.config['HOST'], port=app.config['PORT'])

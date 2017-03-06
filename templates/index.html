@@ -25,16 +25,20 @@
     </table>
     <div id=console></div>
 
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
     <script>
-    const evtSource = new EventSource("/molt/{{ vhost.full }}");
-    evtSource.onmessage = function(e) {
+    const socket = io.connect('http://' + document.domain + ':' + location.port);
+    socket.on('connect', function() {
+      console.log('connected')
+      socket.emit('molt', {rev:"{{ vhost.rev }}", repo:"{{ vhost.repo }}", user:"{{ vhost.user }}"});
+    });
+    socket.on('stdio') = function(e) {
       const newElement = document.createElement("p");
       newElement.className = 'console-row';
       newElement.innerHTML = e.data;
       document.getElementById('console').appendChild(newElement);
     }
-    evtSource.onerror = function(e) {
-      evtSource.close();
+    socket.on('disconnect') = function(e) {
       location.href = `{{ redirect_url }}`
     }
     </script>
