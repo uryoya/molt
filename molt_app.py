@@ -66,6 +66,8 @@ def hook():
     event = request.headers["X-GitHub-Event"]
     req = request.json
     if event != "pull_request":
+        return "ok", 200
+    else:
         action = req["action"]
         if action not in {"opened", "synchronize"}:
             return "ok", 200
