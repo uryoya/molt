@@ -19,7 +19,10 @@ socketio = SocketIO(app)
 @app.route('/<virtual_host>')
 def index(virtual_host):
     """Moltの実行をプレビューするページ."""
-    rev, repo, user = virtual_host_parse(virtual_host)
+    try:
+        rev, repo, user = virtual_host_parse(virtual_host)
+    except ValueError:
+        abort(404)
     vhost = {'rev': rev, 'repo': repo, 'user': user, 'full': virtual_host}
     redirect_url = '//{}.{}/'.format(virtual_host, app.config['BASE_DOMAIN'])
     return render_template('index.html', vhost=vhost,
@@ -29,7 +32,6 @@ def index(virtual_host):
 @socketio.on('molt')
 def handle_molt(virtual_host):
     """Moltの実行をストリーミングする(WebSocketを使ったAPI)."""
-    print(virtual_host)
     m = Molt(virtual_host['rev'], virtual_host['repo'], virtual_host['user'])
     r = redis.StrictRedis(host=app.config['REDIS_HOST'],
                           port=app.config['REDIS_PORT'])
@@ -98,6 +100,8 @@ def virtual_host_parse(virtual_host):
     """
     p = re.compile(r'(?P<rev>^.+?)\.(?P<repo>.+)\.(?P<user>.+)$')
     m = p.search(virtual_host)
+    if not m:
+        return ''
     return m.group('rev'), m.group('repo'), m.group('user')
 
 
