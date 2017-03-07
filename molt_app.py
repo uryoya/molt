@@ -65,8 +65,9 @@ def base_domain_filter(path):
 def hook():
     event = request.headers["X-GitHub-Event"]
     req = request.json
-    action = req["action"]
-    if event != "pull_request" and action not in {"opened", "synchronize"}:
+    if event != "pull_request":
+        return "ok", 200
+    elif req["action"] not in {"opened", "synchronize"}:
         return "ok", 200
 
     pr = req["pull_request"]
