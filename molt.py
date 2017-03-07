@@ -1,4 +1,5 @@
 """Molt Core Interfaces."""
+import os
 import subprocess
 import shlex
 import docker
@@ -22,7 +23,8 @@ class Molt:
 
     def __del__(self):
         """デストラクタ."""
-        self.molt_yml_fp.close()
+        if self.molt_yml_fp:
+            self.molt_yml_fp.close()
 
     def molt(self):
         """Gitリポジトリのクローンと、Dockerイメージの立ち上げ."""
@@ -54,10 +56,20 @@ class Molt:
           - docker-compose.2.yaml
         entry: entry_service_name
         """
+        if not os.path.exists(self.repo_dir + '/molt-config.yml'):
+            raise MoltError('molt-config.ymlがリポジトリに存在しません.')
         with open(self.repo_dir + '/molt-config.yml', 'r') as f:
             molt_conf = yaml.load(f)
-            files = molt_conf['compose_files']
-            entry = molt_conf['entry']
+        if not molt_conf:   # is None
+            raise MoltError('molt-config.yml内に設定が存在しません.')
+        if 'compose_files' not in molt_conf.keys():
+            raise MoltError('"compose_files"の設定が必要ですが、このリポジトリの\
+                            molt-config.ymlには存在しません.')
+        if 'entry' not in molt_conf.keys():
+            raise MoltError('"entry"の設定が必要ですが、このリポジトリの\
+                            molt-config.ymlには存在しません.')
+        files = molt_conf['compose_files']
+        entry = molt_conf['entry']
         return {'files': files, 'entry': entry}
 
     # 以下はSHELLで実行するコマンドの記述
@@ -130,12 +142,27 @@ class Molt:
                                 stderr=subprocess.STDOUT)
 
 
+class Error(Exception):
+    """Base class for exceptions in this module."""
+    pass
+
+
+class MoltError(Error):
+    """Exception raised for errors in molting."""
+
+    def __init__(self, message):
+        self.message = message
+
+
 if __name__ == '__main__':
-    rev = '4809f18'
+    rev = '0af08d4'
     repo = 'molt-test'
     user = 'swkoubou'
 
     m = Molt(rev, repo, user)
-    for line in m.molt():
-        print(line.decode(), end='', flush=True)
+    try:
+        for line in m.molt():
+            print(line.decode(), end='', flush=True)
+    except MoltError as e:
+        print(e.message)
     print()
