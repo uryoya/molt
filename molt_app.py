@@ -67,10 +67,8 @@ def hook():
     req = request.json
     if event != "pull_request":
         return "ok", 200
-    else:
-        action = req["action"]
-        if action not in {"opened", "synchronize"}:
-            return "ok", 200
+    elif req["action"] not in {"opened", "synchronize"}:
+        return "ok", 200
 
     pr = req["pull_request"]
     pr_url = pr["comments_url"]
