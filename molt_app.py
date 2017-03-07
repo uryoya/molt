@@ -101,7 +101,7 @@ def virtual_host_parse(virtual_host):
     p = re.compile(r'(?P<rev>^.+?)\.(?P<repo>.+)\.(?P<user>.+)$')
     m = p.search(virtual_host)
     if not m:
-        return ''
+        return ()
     return m.group('rev'), m.group('repo'), m.group('user')
 
 
