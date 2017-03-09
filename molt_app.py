@@ -14,7 +14,7 @@ app = Flask(__name__)
 app.config.from_pyfile('config/molt_app.cfg', silent=True)
 
 
-@app.route('/<virtual_host>')
+@app.route('/<virtual_host>', strict_slashes=False)
 def index(virtual_host):
     """Moltの実行をプレビューするページ."""
     try:
@@ -27,7 +27,7 @@ def index(virtual_host):
                            redirect_url=redirect_url)
 
 
-@app.route('/molt/<virtual_host>', methods=['GET'])
+@app.route('/molt/<virtual_host>', methods=['GET'], strict_slashes=False)
 def molt(virtual_host):
     """Moltの実行をストリーミングする(Server-Sent Eventを使ったAPI)."""
     rev, repo, user = virtual_host_parse(virtual_host)
