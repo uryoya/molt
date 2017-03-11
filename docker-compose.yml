@@ -7,6 +7,7 @@ services:
       - BASE_DOMAIN=127.0.0.1.xip.io
       - DEFAULT_DEST_URL=http://172.28.0.254:5000/{}
       - DB_HOST=redis
+      - STREAM=on
     ports:
       - 80:8000
     depends_on:
