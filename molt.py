@@ -74,9 +74,13 @@ class Molt:
 
     # 以下はSHELLで実行するコマンドの記述
     def _git_clone(self):
+        wd = os.getcwd()
         command = 'git clone --progress {} {}'.format(self.repo_url,
                                                       self.repo_dir)
         return subprocess.Popen(shlex.split(command),
+                                env={
+                                'GIT_SSH': '{}/scripts/git-ssh.sh'.format(wd)
+                                },
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
 
