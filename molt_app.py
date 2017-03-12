@@ -6,11 +6,18 @@ import subprocess
 import os
 import shlex
 import requests
+import sys
 
 from flask import Flask, Response, render_template, abort, request
 from molt import Molt
 
 app = Flask(__name__)
+
+cfg_file = 'config/molt_app.cfg'
+if not os.path.exists(cfg_file):
+    app.logger.error("molt_app.cfg ファイルが存在しません")
+    sys.exit(1)
+
 app.config.from_pyfile('config/molt_app.cfg', silent=True)
 
 
