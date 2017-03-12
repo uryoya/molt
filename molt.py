@@ -28,8 +28,15 @@ class Molt:
 
     def molt(self):
         """Gitリポジトリのクローンと、Dockerイメージの立ち上げ."""
-        for command in (self._git_clone, self._git_checkout,
-                        self._marge_docker_compose,
+        if os.path.exists(self.repo_dir):
+            print('exist')
+            for row in self._git_pull().stdout:
+                yield row
+        else:
+            print('not found')
+            for row in self._git_clone().stdout:
+                yield row
+        for command in (self._git_checkout, self._marge_docker_compose,
                         self._compose_build, self._compose_up):
             for row in command().stdout:
                 yield row
@@ -77,6 +84,16 @@ class Molt:
         wd = os.getcwd()
         command = 'git clone --progress {} {}'.format(self.repo_url,
                                                       self.repo_dir)
+        return subprocess.Popen(shlex.split(command),
+                                env={
+                                'GIT_SSH': '{}/scripts/git-ssh.sh'.format(wd)
+                                },
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+
+    def _git_pull(self):
+        wd = os.getcwd()
+        command = 'git pull --progress'
         return subprocess.Popen(shlex.split(command),
                                 env={
                                 'GIT_SSH': '{}/scripts/git-ssh.sh'.format(wd)
