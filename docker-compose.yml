@@ -5,7 +5,7 @@ services:
     environment:
       - LISTEN_PORT=8000
       - BASE_DOMAIN=127.0.0.1.xip.io
-      - DEFAULT_DEST_URL=http://172.28.0.254:5000/{}
+      - DEFAULT_DEST_URL=http://172.31.255.254:5000/{}
       - DB_HOST=redis
       - STREAM=on
     ports:
