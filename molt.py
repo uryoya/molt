@@ -28,8 +28,15 @@ class Molt:
 
     def molt(self):
         """Gitリポジトリのクローンと、Dockerイメージの立ち上げ."""
-        for command in (self._git_clone, self._git_checkout,
-                        self._marge_docker_compose,
+        if os.path.exists(self.repo_dir):
+            print('exist')
+            for row in self._git_pull().stdout:
+                yield row
+        else:
+            print('not found')
+            for row in self._git_clone().stdout:
+                yield row
+        for command in (self._git_checkout, self._marge_docker_compose,
                         self._compose_build, self._compose_up):
             for row in command().stdout:
                 yield row
@@ -84,6 +91,16 @@ class Molt:
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
 
+    def _git_pull(self):
+        wd = os.getcwd()
+        command = 'git pull --progress'
+        return subprocess.Popen(shlex.split(command),
+                                env={
+                                'GIT_SSH': '{}/scripts/git-ssh.sh'.format(wd)
+                                },
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+
     def _git_checkout(self):
         command = 'git checkout {}'.format(self.rev)
         return subprocess.Popen(shlex.split(command),
@@ -96,13 +113,31 @@ class Molt:
         molt_conf = self.get_molt_config_files()
         compose_files = molt_conf['files']
         data = {}
+
         for filename in compose_files:
             with open(str(Path(self.repo_dir) / filename), 'r') as f:
                 data.update(yaml.load(f))    # 各yamlファイルを統合・上書き
-        # container_nameの追加
+
+        # molt 接続用のネットワークを追加
+        if 'networks' in data:
+            data['networks'].update({
+                    'molt-network': {'external': {'name': 'molt-network'}}
+                    })
+        else:
+            data['networks'] = {
+                    'molt-network': {'external': {'name': 'molt-network'}}
+                    }
+
+        # 各serviceにcontainer_name, networkを追加, portsを削除
         for s_name, s_conf in data['services'].items():
             s_conf['container_name'] = self.gen_container_name(s_name)
-        data['networks'] = {'default': {'external': {'name': 'molt-network'}}}
+            if 'networks' in s_conf:
+                s_conf['networks'].append('molt-network')
+            else:
+                s_conf['networks'] = ['molt-network']
+            if 'ports' in s_conf:
+                del s_conf['ports']
+
         # 変更したcompose fileの書き出し
         fp = tempfile.NamedTemporaryFile(mode='w')
         yaml.dump(data, fp)
@@ -158,6 +193,7 @@ class MoltError(Error):
         self.message = message
 
 
+# test
 if __name__ == '__main__':
     rev = '0af08d4'
     repo = 'molt-test'
