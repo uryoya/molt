@@ -96,13 +96,31 @@ class Molt:
         molt_conf = self.get_molt_config_files()
         compose_files = molt_conf['files']
         data = {}
+
         for filename in compose_files:
             with open(str(Path(self.repo_dir) / filename), 'r') as f:
                 data.update(yaml.load(f))    # 各yamlファイルを統合・上書き
-        # container_nameの追加
+
+        # molt 接続用のネットワークを追加
+        if 'networks' in data:
+            data['networks'].update({
+                    'molt-network': {'external': {'name': 'molt-network'}}
+                    })
+        else:
+            data['networks'] = {
+                    'molt-network': {'external': {'name': 'molt-network'}}
+                    }
+
+        # 各serviceにcontainer_name, networkを追加, portsを削除
         for s_name, s_conf in data['services'].items():
             s_conf['container_name'] = self.gen_container_name(s_name)
-        data['networks'] = {'default': {'external': {'name': 'molt-network'}}}
+            if 'networks' in s_conf:
+                s_conf['networks'].append('molt-network')
+            else:
+                s_conf['networks'] = ['molt-network']
+            if 'ports' in s_conf:
+                del s_conf['ports']
+
         # 変更したcompose fileの書き出し
         fp = tempfile.NamedTemporaryFile(mode='w')
         yaml.dump(data, fp)
@@ -158,6 +176,7 @@ class MoltError(Error):
         self.message = message
 
 
+# test
 if __name__ == '__main__':
     rev = '0af08d4'
     repo = 'molt-test'
