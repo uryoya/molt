@@ -67,20 +67,15 @@ class Molt:
             raise MoltError('molt-config.ymlがリポジトリに存在しません.')
         with open(self.repo_dir + '/molt-config.yml', 'r') as f:
             molt_conf = yaml.load(f)
-        if not molt_conf:   # is None
-            raise MoltError('molt-config.yml内に設定が存在しません.')
+        if not molt_conf:
+            raise MoltError('molt-config.yml内の設定が見つかりません')
         if 'compose_files' not in molt_conf.keys():
             raise MoltError('"compose_files"の設定が必要ですが、このリポジトリの\
                             molt-config.ymlには存在しません.')
         if 'entry' not in molt_conf.keys():
             raise MoltError('"entry"の設定が必要ですが、このリポジトリの\
                             molt-config.ymlには存在しません.')
-        if 'init' not in molt_conf.keys():
-            raise MoltError('"init"の設定が必要ですが、このリポジトリの\
-                            molt-config.ymlには存在しません.')
-        return {'files': molt_conf['compose_files'],
-                'entry': molt_conf['entry'],
-                'init': molt_conf['init']}
+        return molt_conf
 
     # 以下はSHELLで実行するコマンドの記述
     def _git_clone(self):
@@ -114,7 +109,7 @@ class Molt:
     def _marge_docker_compose(self):
         """Molt用にdocker-compose.ymlを統合して書き換える."""
         molt_conf = self.get_molt_config_files()
-        compose_files = molt_conf['files']
+        compose_files = molt_conf['compose_files']
         data = {}
 
         for filename in compose_files:
@@ -155,7 +150,7 @@ class Molt:
 
     def _compose_build(self):
         molt_conf = self.get_molt_config_files()
-        compose_files = molt_conf['files']
+        compose_files = molt_conf['compose_files']
         if compose_files == []:
             command = 'docker-compose build --no-cache'
         else:
@@ -170,7 +165,7 @@ class Molt:
 
     def _compose_up(self):
         molt_conf = self.get_molt_config_files()
-        compose_files = molt_conf['files']
+        compose_files = molt_conf['compose_files']
         if compose_files == []:
             command = 'docker-compose up -d'
         else:
