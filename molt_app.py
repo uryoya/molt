@@ -10,7 +10,7 @@ import sys
 import argparse
 
 from flask import Flask, Response, render_template, abort, request
-from molt import Molt
+from molt import Molt, MoltError
 
 app = Flask(__name__)
 
@@ -62,12 +62,18 @@ def molt(virtual_host):
         の情報取得・設定をする
         """
         # コマンド群の実行
-        for row in m.molt():
-            row = row.decode()
-            data = row.split('\r')[-1]    # CRのみの行は保留されるので取り除く
-            yield event_stream_parser(data)
-        # RedisへIPアドレスとバーチャルホストの対応を書き込む
-        r.hset('mirror-store', virtual_host, m.get_container_ip())
+        try:
+            for row in m.molt():
+                row = row.decode()
+                data = row.split('\r')[-1]    # CRのみの行は保留されるので取り除く
+                yield event_stream_parser(data)
+        except MoltError as e:
+            yield event_stream_parser(e)
+        except Exception:
+            yield event_stream_parser('Molt内部でエラーが発生しました。終了します...')
+        else:
+            # RedisへIPアドレスとバーチャルホストの対応を書き込む
+            r.hset('mirror-store', virtual_host, m.get_container_ip())
     return Response(generate(m, r), mimetype='text/event-stream')
 
 
