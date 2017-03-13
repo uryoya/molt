@@ -33,29 +33,40 @@ class Molt:
         """Gitリポジトリのクローンと、Dockerイメージの立ち上げ."""
         # リポジトリのcloneかpull
         if os.path.exists(self.repo_dir):
-            for row in self._git_pull().stdout:
-                yield row
+            proc = self._git_pull()
         else:
-            for row in self._git_clone().stdout:
-                yield row
-        # 特定コミットへのcheckout
-        for row in self._git_checkout().stdout:
+            proc = self._git_clone()
+        for row in proc.stdout:
             yield row
+        proc.wait()
+        # 特定コミットへのcheckout
+        proc = self._git_checkout()
+        for row in proc.stdout:
+            yield row
+        proc.wait()
         # Molt固有設定の読み込み
         self.config = self.get_molt_config_files()
         # 初期化処理の実行
         if 'init' in self.config.keys():
-            for row in self._init_repository().stdout:
+            proc = self._init_repository()
+            for row in proc.stdout:
                 yield row
+            proc.wait()
         # composeファイルの統合
-        for row in self._marge_docker_compose().stdout:
+        proc = self._marge_docker_compose()
+        for row in proc.stdout:
             yield row
+        proc.wait()
         # docker-compose build
-        for row in self._compose_build().stdout:
+        proc = self._compose_build()
+        for row in proc.stdout:
             yield row
+        proc.wait()
         # docker-compose up
-        for row in self._compose_up().stdout:
+        proc = self._compose_up()
+        for row in proc.stdout:
             yield row
+        proc.wait()
 
     def get_container_ip(self):
         """Moltで生成したコンテナのIPアドレスを取得する."""
