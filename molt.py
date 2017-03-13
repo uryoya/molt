@@ -198,7 +198,8 @@ class Molt:
             compose_files.append(self.molt_yml_fp.name)
             expand_conf = '-f {} '*len(compose_files)
             expand_conf = expand_conf.format(*compose_files)
-            command = 'docker-compose ' + expand_conf + 'build --no-cache'
+            command = 'bash -c "docker-compose ' + expand_conf + \
+                      'build --no-cache"'
         return subprocess.Popen(shlex.split(command),
                                 cwd=self.repo_dir,
                                 stdout=subprocess.PIPE,
@@ -212,7 +213,7 @@ class Molt:
             compose_files.append(self.molt_yml_fp.name)
             expand_conf = '-f {} '*len(compose_files)
             expand_conf = expand_conf.format(*compose_files)
-            command = 'docker-compose ' + expand_conf + 'up -d'
+            command = 'bash -c "docker-compose ' + expand_conf + 'up -d"'
         return subprocess.Popen(shlex.split(command),
                                 cwd=self.repo_dir,
                                 stdout=subprocess.PIPE,
