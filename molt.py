@@ -5,6 +5,7 @@ import shlex
 import docker
 import yaml
 import tempfile
+import uuid
 
 from pathlib import Path
 
@@ -20,6 +21,7 @@ class Molt:
         self.repo_url = 'git@github.com:{}/{}.git'.format(user, repo)
         self.repo_dir = str(Path('./repos') / user / repo / rev)
         self.molt_yml_fp = None
+        self.config = None
 
     def __del__(self):
         """デストラクタ."""
@@ -28,25 +30,37 @@ class Molt:
 
     def molt(self):
         """Gitリポジトリのクローンと、Dockerイメージの立ち上げ."""
+        # リポジトリのcloneかpull
         if os.path.exists(self.repo_dir):
-            print('exist')
             for row in self._git_pull().stdout:
                 yield row
         else:
-            print('not found')
             for row in self._git_clone().stdout:
                 yield row
-        for command in (self._git_checkout, self._marge_docker_compose,
-                        self._compose_build, self._compose_up):
-            for row in command().stdout:
+        # 特定コミットへのcheckout
+        for row in self._git_checkout().stdout:
+            yield row
+        # Molt固有設定の読み込み
+        self.config = self.get_molt_config_files()
+        # 初期化処理の実行
+        if 'init' in self.config.keys():
+            for row in self._init_repository().stdout:
                 yield row
+        # composeファイルの統合
+        for row in self._marge_docker_compose().stdout:
+            yield row
+        # docker-compose build
+        for row in self._compose_build().stdout:
+            yield row
+        # docker-compose up
+        for row in self._compose_up().stdout:
+            yield row
 
     def get_container_ip(self):
         """Moltで生成したコンテナのIPアドレスを取得する."""
         client = docker.from_env()
-        molt_conf = self.get_molt_config_files()
         container = client.containers.get(
-                self.gen_container_name(molt_conf['entry']))
+                self.gen_container_name(self.config['entry']))
         key = list(container.attrs['NetworkSettings']['Networks'].keys())[0]
         return container.attrs['NetworkSettings']['Networks'][key]['IPAddress']
 
@@ -67,17 +81,15 @@ class Molt:
             raise MoltError('molt-config.ymlがリポジトリに存在しません.')
         with open(self.repo_dir + '/molt-config.yml', 'r') as f:
             molt_conf = yaml.load(f)
-        if not molt_conf:   # is None
-            raise MoltError('molt-config.yml内に設定が存在しません.')
+        if not molt_conf:
+            raise MoltError('molt-config.yml内の設定が見つかりません')
         if 'compose_files' not in molt_conf.keys():
             raise MoltError('"compose_files"の設定が必要ですが、このリポジトリの\
                             molt-config.ymlには存在しません.')
         if 'entry' not in molt_conf.keys():
             raise MoltError('"entry"の設定が必要ですが、このリポジトリの\
                             molt-config.ymlには存在しません.')
-        files = molt_conf['compose_files']
-        entry = molt_conf['entry']
-        return {'files': files, 'entry': entry}
+        return molt_conf
 
     # 以下はSHELLで実行するコマンドの記述
     def _git_clone(self):
@@ -108,10 +120,23 @@ class Molt:
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
 
+    def _init_repository(self):
+        if os.path.isfile(self.config['init']):
+            command = 'bash {}'.format(self.config['init'])
+        else:
+            tag = uuid.uuid4().hex[:7]
+            filename = '/tmp/__mot_config_file{}'.format(tag)
+            with open(filename, 'w') as f:
+                f.write(self.config['init'])
+            command = 'bash {}'.format(filename)
+        return subprocess.Popen(shlex.split(command),
+                                cwd=self.repo_dir,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+
     def _marge_docker_compose(self):
         """Molt用にdocker-compose.ymlを統合して書き換える."""
-        molt_conf = self.get_molt_config_files()
-        compose_files = molt_conf['files']
+        compose_files = self.config['compose_files']
         data = {}
 
         for filename in compose_files:
@@ -151,8 +176,7 @@ class Molt:
                                 stderr=subprocess.STDOUT)
 
     def _compose_build(self):
-        molt_conf = self.get_molt_config_files()
-        compose_files = molt_conf['files']
+        compose_files = self.config['compose_files']
         if compose_files == []:
             command = 'docker-compose build --no-cache'
         else:
@@ -166,8 +190,7 @@ class Molt:
                                 stderr=subprocess.STDOUT)
 
     def _compose_up(self):
-        molt_conf = self.get_molt_config_files()
-        compose_files = molt_conf['files']
+        compose_files = self.config['compose_files']
         if compose_files == []:
             command = 'docker-compose up -d'
         else:

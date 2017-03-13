@@ -22,6 +22,7 @@
         <tr><td>User</td><td id=user>{{ vhost.user }}</td></tr>
         <tr><td>Repository</td><td id=repo>{{ vhost.repo }}</td></tr>
         <tr><td>Revision</td><td id=rev>{{ vhost.rev }}</td></tr>
+        <tr><td>Status</td><td id=status>running</td></tr>
     </table>
     <div id=console></div>
 
@@ -33,9 +34,20 @@
       newElement.innerHTML = e.data;
       document.getElementById('console').appendChild(newElement);
     }
-    evtSource.onerror = function(e) {
+    evtSource.addEventListener("success", function(e) {
       evtSource.close();
       location.href = `{{ redirect_url }}`
+    }, false);
+    evtSource.addEventListener("failure", function(e) {
+      const newElement = document.createElement("p");
+      newElement.className = 'console-row';
+      newElement.innerHTML = e.data;
+      document.getElementById('console').appendChild(newElement);
+      document.getElementById('status').innerHTML = 'failure'
+      evtSource.close();
+    }, false);
+    evtSource.onerror = function(e) {
+      evtSource.close();
     }
     </script>
 </body>
