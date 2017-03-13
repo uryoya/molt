@@ -36,7 +36,7 @@ def index(virtual_host):
     """Moltの実行をプレビューするページ."""
     try:
         rev, repo, user = virtual_host_parse(virtual_host)
-    except ValueError:
+    except Exception:
         abort(404)
     vhost = {'rev': rev, 'repo': repo, 'user': user, 'full': virtual_host}
     redirect_url = '//{}.{}/'.format(virtual_host, app.config['BASE_DOMAIN'])
@@ -47,7 +47,10 @@ def index(virtual_host):
 @app.route('/molt/<virtual_host>', methods=['GET'], strict_slashes=False)
 def molt(virtual_host):
     """Moltの実行をストリーミングする(Server-Sent Eventを使ったAPI)."""
-    rev, repo, user = virtual_host_parse(virtual_host)
+    try:
+        rev, repo, user = virtual_host_parse(virtual_host)
+    except Exception:
+        abort(404)
     m = Molt(rev, repo, user)
     r = redis.StrictRedis(host=app.config['REDIS_HOST'],
                           port=app.config['REDIS_PORT'])
