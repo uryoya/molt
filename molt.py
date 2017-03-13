@@ -13,11 +13,12 @@ from pathlib import Path
 class Molt:
     """指定されたvirtual_hostを元にDockerイメージの立ち上げ・管理をする."""
 
-    def __init__(self, rev, repo, user):
+    def __init__(self, rev, repo, user, base_domain):
         """コンストラクタ."""
         self.rev = rev
         self.repo = repo
         self.user = user
+        self.molt_domain = '{}.{}.{}.{}'.format(rev, repo, user, base_domain)
         self.repo_url = 'git@github.com:{}/{}.git'.format(user, repo)
         self.repo_dir = str(Path('./repos') / user / repo / rev)
         self.molt_yml_fp = None
@@ -130,6 +131,9 @@ class Molt:
                 f.write(self.config['init'])
             command = 'bash {}'.format(filename)
         return subprocess.Popen(shlex.split(command),
+                                env={
+                                'MOLT_DOMAIN': self.molt_domain
+                                },
                                 cwd=self.repo_dir,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
