@@ -68,12 +68,14 @@ def molt(virtual_host):
                 data = row.split('\r')[-1]    # CRのみの行は保留されるので取り除く
                 yield event_stream_parser(data)
         except MoltError as e:
-            yield event_stream_parser(e)
+            yield event_stream_parser(e, event='failure')
         except Exception:
-            yield event_stream_parser('Molt内部でエラーが発生しました。終了します...')
+            yield event_stream_parser('Molt内部でエラーが発生しました。終了します...',
+                                      event='failure')
         else:
             # RedisへIPアドレスとバーチャルホストの対応を書き込む
             r.hset('mirror-store', virtual_host, m.get_container_ip())
+            yield event_stream_parser('', event='success')
     return Response(generate(m, r), mimetype='text/event-stream')
 
 
