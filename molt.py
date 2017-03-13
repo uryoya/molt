@@ -75,9 +75,12 @@ class Molt:
         if 'entry' not in molt_conf.keys():
             raise MoltError('"entry"の設定が必要ですが、このリポジトリの\
                             molt-config.ymlには存在しません.')
-        files = molt_conf['compose_files']
-        entry = molt_conf['entry']
-        return {'files': files, 'entry': entry}
+        if 'init' not in molt_conf.keys():
+            raise MoltError('"init"の設定が必要ですが、このリポジトリの\
+                            molt-config.ymlには存在しません.')
+        return {'files': molt_conf['compose_files'],
+                'entry': molt_conf['entry'],
+                'init': molt_conf['init']}
 
     # 以下はSHELLで実行するコマンドの記述
     def _git_clone(self):
