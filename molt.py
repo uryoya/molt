@@ -5,6 +5,7 @@ import shlex
 import docker
 import yaml
 import tempfile
+import uuid
 
 from pathlib import Path
 
@@ -41,6 +42,10 @@ class Molt:
             yield row
         # Molt固有設定の読み込み
         self.config = self.get_molt_config_files()
+        # 初期化処理の実行
+        if 'init' in self.config.keys():
+            for row in self._init_repository().stdout:
+                yield row
         # composeファイルの統合
         for row in self._marge_docker_compose().stdout:
             yield row
@@ -110,6 +115,20 @@ class Molt:
 
     def _git_checkout(self):
         command = 'git checkout {}'.format(self.rev)
+        return subprocess.Popen(shlex.split(command),
+                                cwd=self.repo_dir,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+
+    def _init_repository(self):
+        if os.path.isfile(self.config['init']):
+            command = 'bash {}'.format(self.config['init'])
+        else:
+            tag = uuid.uuid4().hex[:7]
+            filename = '/tmp/__mot_config_file{}'.format(tag)
+            with open(filename, 'w') as f:
+                f.write(self.config['init'])
+            command = 'bash {}'.format(filename)
         return subprocess.Popen(shlex.split(command),
                                 cwd=self.repo_dir,
                                 stdout=subprocess.PIPE,
