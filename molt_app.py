@@ -51,7 +51,8 @@ def molt(virtual_host):
         rev, repo, user = virtual_host_parse(virtual_host)
     except Exception:
         abort(404)
-    m = Molt(rev, repo, user, app.config['BASE_DOMAIN'])
+    m = Molt(rev, repo, user, app.config['BASE_DOMAIN'],
+             app.config['GITHUB_USER'], app.config['GITHUB_TOKEN'])
     r = redis.StrictRedis(host=app.config['REDIS_HOST'],
                           port=app.config['REDIS_PORT'])
 
