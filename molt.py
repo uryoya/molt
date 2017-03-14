@@ -13,13 +13,15 @@ from pathlib import Path
 class Molt:
     """指定されたvirtual_hostを元にDockerイメージの立ち上げ・管理をする."""
 
-    def __init__(self, rev, repo, user, base_domain):
+    def __init__(self, rev, repo, user, domain, github_user, github_token):
         """コンストラクタ."""
         self.rev = rev
         self.repo = repo
         self.user = user
-        self.molt_domain = '{}.{}.{}.{}'.format(rev, repo, user, base_domain)
-        self.repo_url = 'git@github.com:{}/{}.git'.format(user, repo)
+        self.molt_domain = '{}.{}.{}.{}'.format(rev, repo, user, domain)
+        self.repo_url = 'https://{}:{}@github.com/{}/{}'.format(github_user,
+                                                                github_token,
+                                                                user, repo)
         self.repo_dir = str(Path('./repos') / user / repo / rev)
         self.molt_yml_fp = None
         self.config = None
