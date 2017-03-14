@@ -122,6 +122,7 @@ class Molt:
                                 env={
                                 'GIT_SSH': '{}/scripts/git-ssh.sh'.format(wd)
                                 },
+                                cwd=self.repo_dir,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
 
