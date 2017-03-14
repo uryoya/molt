@@ -210,7 +210,11 @@ class Molt:
         if compose_files == []:
             command = 'docker-compose up -d'
         else:
-            compose_files.append(self.molt_yml_fp.name)
+            # compose_files.append(self.molt_yml_fp.name)
+            # *UGLY* _compose_build()でself.config['compose_files']のポインタを渡して
+            # いるので、compose_files.append()で実体が書き換えられている。そのために、
+            # self.configが2度更新され、ファイルが重複してしまうバグが発生していた。ここでは簡潔の
+            # ためにappend()の処理を取り消して対処している。
             expand_conf = '-f {} '*len(compose_files)
             expand_conf = expand_conf.format(*compose_files)
             command = 'bash -c "docker-compose ' + expand_conf + 'up -d"'
