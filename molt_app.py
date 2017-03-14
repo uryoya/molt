@@ -64,13 +64,16 @@ def molt(virtual_host):
         """
         # コマンド群の実行
         try:
-            for row in m.molt():
-                row = row.decode()
-                data = row.split('\r')[-1]    # CRのみの行は保留されるので取り除く
+            for out in m.molt():
+                out = out.decode().split('\r')
+                data = out[-1]  # CRのみの行は保留されるので取り除く
+                if data == '\n' and len(out) >= 2:
+                    data = out[-2]  # CRLFを分割すると改行のみが取り出されてしまう
                 yield event_stream_parser(data)
         except MoltError as e:
             yield event_stream_parser(e, event='failure')
-        except Exception:
+        except Exception as e:
+            print(e)
             yield event_stream_parser('Molt内部でエラーが発生しました。終了します...',
                                       event='failure')
         else:
