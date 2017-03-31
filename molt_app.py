@@ -31,6 +31,9 @@ if not os.path.exists(cfg_file):
 app.config.from_pyfile(cfg_file, silent=True)
 
 
+molts = {}
+
+
 @app.route('/<virtual_host>', strict_slashes=False)
 def index(virtual_host):
     """Moltの実行をプレビューするページ."""
@@ -51,12 +54,16 @@ def molt(virtual_host):
         rev, repo, user = virtual_host_parse(virtual_host)
     except Exception:
         abort(404)
-    m = Molt(rev, repo, user, app.config['BASE_DOMAIN'],
-             app.config['GITHUB_USER'], app.config['GITHUB_TOKEN'])
-    r = redis.StrictRedis(host=app.config['REDIS_HOST'],
-                          port=app.config['REDIS_PORT'])
 
-    def generate(m, r):
+    print(molts)
+    if virtual_host not in molts:
+        molts[virtual_host] = Molt(rev, repo, user,
+                                   app.config['BASE_DOMAIN'],
+                                   app.config['GITHUB_USER'],
+                                   app.config['GITHUB_TOKEN'])
+        molts[virtual_host].start()
+
+    def generate():
         """Dockerイメージ立ち上げ(ストリーミングするための関数).
 
         git clone から docker-compose upまでの一連の処理のSTDIOの送信と、Dockerイメージ
@@ -64,20 +71,31 @@ def molt(virtual_host):
         """
         # コマンド群の実行
         try:
-            for row in m.molt():
-                row = row.decode()
-                data = row.split('\r')[-1]    # CRのみの行は保留されるので取り除く
-                yield event_stream_parser(data)
+            yield event_stream_parser(':')
+            out = ''
+            while molts[virtual_host].p.is_alive() and out != '<<<molt-end>>>':
+                out = molts[virtual_host].stdout.get()
+                out = out.split('\r')
+                data = out[-1]  # CRのみの行は保留されるので取り除く
+                if data == '\n' and len(out) >= 2:
+                    data = out[-2]  # CRLFを分割すると改行のみが取り出されてしまう
+                re.sub(r'\x1B\[[0-9]{1,3}[mK]', '', data)
+                yield event_stream_parser(data.strip())
+            # RedisへIPアドレスとバーチャルホストの対応を書き込む
+            r = redis.StrictRedis(host=app.config['REDIS_HOST'],
+                                  port=app.config['REDIS_PORT'])
+            r.hset('mirror-store', virtual_host,
+                   molts[virtual_host].get_container_ip())
         except MoltError as e:
             yield event_stream_parser(e, event='failure')
-        except Exception:
+        except Exception as e:
+            print(e)
             yield event_stream_parser('Molt内部でエラーが発生しました。終了します...',
                                       event='failure')
         else:
-            # RedisへIPアドレスとバーチャルホストの対応を書き込む
-            r.hset('mirror-store', virtual_host, m.get_container_ip())
+            del molts[virtual_host]
             yield event_stream_parser('', event='success')
-    return Response(generate(m, r), mimetype='text/event-stream')
+    return Response(generate(), mimetype='text/event-stream')
 
 
 @app.route('/favicon.ico')
@@ -140,6 +158,8 @@ def virtual_host_parse(virtual_host):
 
 def event_stream_parser(data, event=None, id=None, retry=None):
     """Server-Sent Event 形式へのパーサ."""
+    if data == ':':  # SSEでコメントに相当する
+        return ':\n\n'
     event_stream = ''
     if event:
         event_stream += 'event: {}\n'.format(event)

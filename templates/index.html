@@ -10,6 +10,7 @@
       color: lightgray;
       background-color: black;
       font-family: monospace;
+      font-size: 14px;
     }
     .console-row {
       margin: 0px; padding: 0px;
@@ -33,8 +34,10 @@
       newElement.className = 'console-row';
       newElement.innerHTML = e.data;
       document.getElementById('console').appendChild(newElement);
+      newElement.scrollIntoView(true);
     }
     evtSource.addEventListener("success", function(e) {
+      console.log('success')
       evtSource.close();
       location.href = `{{ redirect_url }}`
     }, false);
@@ -47,7 +50,7 @@
       evtSource.close();
     }, false);
     evtSource.onerror = function(e) {
-      evtSource.close();
+      console.log('onerror')
     }
     </script>
 </body>
