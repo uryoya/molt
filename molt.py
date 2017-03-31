@@ -8,6 +8,8 @@ import tempfile
 import uuid
 
 from pathlib import Path
+from queue import Queue
+from threading import Thread
 
 
 class Molt:
@@ -25,11 +27,17 @@ class Molt:
         self.repo_dir = str(Path('./repos') / user / repo / rev)
         self.molt_yml_fp = None
         self.config = None
+        self.p = None
+        self.stdout = Queue()
 
     def __del__(self):
         """デストラクタ."""
         if self.molt_yml_fp:
             self.molt_yml_fp.close()
+
+    def start(self):
+        self.p = Thread(target=self.molt)
+        self.p.start()
 
     def molt(self):
         """Gitリポジトリのクローンと、Dockerイメージの立ち上げ."""
@@ -39,12 +47,12 @@ class Molt:
         else:
             proc = self._git_clone()
         for row in proc.stdout:
-            yield row
+            self.stdout.put(row.decode())
         proc.wait()
         # 特定コミットへのcheckout
         proc = self._git_checkout()
         for row in proc.stdout:
-            yield row
+            self.stdout.put(row.decode())
         proc.wait()
         # Molt固有設定の読み込み
         self.config = self.get_molt_config_files()
@@ -52,23 +60,24 @@ class Molt:
         if 'init' in self.config.keys():
             proc = self._init_repository()
             for row in proc.stdout:
-                yield row
+                self.stdout.put(row.decode())
             proc.wait()
         # composeファイルの統合
         proc = self._marge_docker_compose()
         for row in proc.stdout:
-            yield row
+            self.stdout.put(row.decode())
         proc.wait()
         # docker-compose build
         proc = self._compose_build()
         for row in proc.stdout:
-            yield row
+            self.stdout.put(row.decode())
         proc.wait()
         # docker-compose up
         proc = self._compose_up()
         for row in proc.stdout:
-            yield row
+            self.stdout.put(row.decode())
         proc.wait()
+        self.stdout.put('<<<molt-end>>>')
 
     def get_container_ip(self):
         """Moltで生成したコンテナのIPアドレスを取得する."""
@@ -144,6 +153,20 @@ class Molt:
             with open(filename, 'w') as f:
                 f.write(self.config['init'])
             command = 'bash {}'.format(filename)
+            command = 'echo "generate .env ..."'
+            env = """
+    NODE_ENV=development
+RMS_ROOT=http://b99512c.swkoubou.rms.swkoubou.molt.swkoubou.com
+RMS_PROXY=
+RMS_GMAIL_PASSWORD=
+MYSQL_ROOT_PASSWORD=mysql
+MYSQL_HOST=b99512c.swkoubou.rms.swkoubou.molt.swkoubou.com
+API_ROOT=http://b99512c.swkoubou.rms.swkoubou.molt.swkoubou.com/api
+FISCAL_YEAR=2016
+DEV_PORT=3001
+            """
+            with open(self.repo_dir + '/.env', 'w') as f:
+                f.write(env)
         return subprocess.Popen(shlex.split(command),
                                 env={
                                 'MOLT_DOMAIN': self.molt_domain
