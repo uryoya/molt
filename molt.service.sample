@@ -1,0 +1,9 @@
+[Unit]
+Description=Molt servder daemon
+After=syslog.target network.target
+
+[Service]
+Type=forking
+WorkingDirectory=/full/path/to/molt
+ExecStart=/full/path/to/molt/start.sh
+
